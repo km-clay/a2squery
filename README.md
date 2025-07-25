@@ -1,6 +1,6 @@
 # a2squery
 
-I needed some way to easily get JSON out of my Source Dedicated Server instances. Somehow, there does not exist a single CLI tool for this, and you basically have to use someone's library, or write your own A2S response parser. I did the latter.
+I needed some way to easily get JSON out of my Source Dedicated Server instances. Somehow, there does not exist a single CLI tool for this, and you basically have to use someone's library, download some tool from npm (out of the question on NixOS), or write your own A2S response parser. I did the latter.
 
 # Usage
 
