@@ -45,4 +45,9 @@ To use `a2squery` simply provide an IP or domain name to the `--host` flag, and 
 }
 ```
 
+To install it using cargo:
+```bash
+cargo install a2squery
+```
+
 Have fun.
