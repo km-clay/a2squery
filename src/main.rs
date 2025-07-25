@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use anyhow::Context;
 use clap::Parser;
 use serde::Serialize;
-use tokio::net::UdpSocket;
+use tokio::{net::UdpSocket, time::{Duration,timeout}};
 
 #[derive(Parser,Debug)]
 #[command(name = "a2squery", author, version, about)]
@@ -266,14 +266,21 @@ async fn main() -> anyhow::Result<()> {
 	socket.send_to(query, &addr).await.context("Failed to send A2S_INFO request")?;
 
 	let mut buf = [0u8; 1400];
-	let (_,_) = socket.recv_from(&mut buf).await.context("Failed to receive response")?;
+	let timeout_duration = Duration::from_secs(2);
+	let (_, _) = timeout(timeout_duration, socket.recv_from(&mut buf))
+		.await
+		.context("Timed out waiting for challenge response")?
+		.context("Failed to receive challenge response")?;
 
 	let challenge = u32::from_le_bytes([buf[5], buf[6], buf[7], buf[8]]);
 	let mut rebuttal = b"\xFF\xFF\xFF\xFFTSource Engine Query\x00".to_vec();
 	rebuttal.extend(&challenge.to_le_bytes());
 
 	socket.send_to(&rebuttal, &addr).await.context("Failed to send A2S_INFO request")?;
-	let (len, _) = socket.recv_from(&mut buf).await.context("Failed to receive response")?;
+	let (len, _) = timeout(timeout_duration, socket.recv_from(&mut buf))
+		.await
+		.context("Timed out waiting for A2S_INFO response")?
+		.context("Failed to receive A2S_INFO response")?;
 
 	let a2s_info = A2SInfo::from_bytes(&buf[..len]).context("Failed to parse A2S_INFO response")?;
 	let a2s_json = serde_json::to_string_pretty(&a2s_info).context("Failed to serialize A2S_INFO to JSON")?;
