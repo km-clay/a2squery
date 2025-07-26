@@ -12,7 +12,7 @@
   in rec {
     packages.a2sQuery = pkgs.rustPlatform.buildRustPackage {
       pname = "a2squery";
-      version = "0.1.0";
+      version = "0.1.2";
 
       src = ./.;
 

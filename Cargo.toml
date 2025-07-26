@@ -1,6 +1,6 @@
 [package]
 name = "a2squery"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "A simple CLI tool for querying Source Dedicated Servers (A2S_INFO)"
 license = "MIT"

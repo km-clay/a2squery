@@ -13,8 +13,16 @@ struct Args {
 	host: String,
 
 	/// The server's query port
+	#[arg(long,short)]
+	port: u16,
+
+	/// Output raw bytes instead of JSON
 	#[arg(long)]
-	port: u16
+	raw: bool,
+
+	/// Comma-separated list of fields to include in output (if not specified, all fields are included)
+	#[arg(long, value_delimiter = ',')]
+	fields: Vec<String>
 }
 
 #[derive(Serialize,Debug)]
@@ -282,9 +290,42 @@ async fn main() -> anyhow::Result<()> {
 		.context("Timed out waiting for A2S_INFO response")?
 		.context("Failed to receive A2S_INFO response")?;
 
-	let a2s_info = A2SInfo::from_bytes(&buf[..len]).context("Failed to parse A2S_INFO response")?;
-	let a2s_json = serde_json::to_string_pretty(&a2s_info).context("Failed to serialize A2S_INFO to JSON")?;
-	println!("{a2s_json}");
+	if args.raw {
+		for (i, chunk) in buf[..len].chunks(16).enumerate() {
+			print!("{:04X}: ", i * 16);
+			let mut count = 0;
+			for b in chunk {
+				print!("{:02X} ", b);
+				count += 1;
+				if count == 8 {
+					print!(" ");
+				}
+			}
+			println!();
+		}
+	} else {
+		let a2s_info = A2SInfo::from_bytes(&buf[..len]).context("Failed to parse A2S_INFO response")?;
+		if !args.fields.is_empty() {
+			let mut filtered = serde_json::Map::new();
+			let json_value = serde_json::to_value(&a2s_info).context("Failed to convert A2SInfo to JSON value")?;
+			if let serde_json::Value::Object(map) = json_value {
+				for field in args.fields.iter() {
+					if let Some(value) = map.get(field) {
+						filtered.insert(field.clone(), value.clone());
+					} else {
+						eprintln!("Warning: field '{}' not found in A2S_INFO", field);
+					}
+				}
+			}
+			let filtered_json = serde_json::Value::Object(filtered);
+			let filtered_pretty = serde_json::to_string_pretty(&filtered_json).context("Failed to serialize filtered A2S_INFO to JSON")?;
+			println!("{filtered_pretty}");
+		} else {
+			let a2s_json = serde_json::to_string_pretty(&a2s_info).context("Failed to serialize A2S_INFO to JSON")?;
+			println!("{a2s_json}");
+		}
+	}
+
 
 
 	Ok(())
